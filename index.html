@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Single Page dengan Auto-Generate Pendo IDs</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 40px; 
+            line-height: 1.6; 
+            max-width: 800px;
+        }
+        .info-box {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+            border-left: 4px solid #007bff;
+        }
+        button { 
+            padding: 10px 15px; 
+            margin: 5px; 
+            cursor: pointer; 
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        #user-info {
+            background: #e8f5e8;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌐 Single Page dengan Auto-Generate Pendo IDs</h1>
+    
+    <div id="user-info">
+        <h3>📊 Informasi User yang Digenerate:</h3>
+        <p><strong>Visitor ID:</strong> <span id="display-visitor-id">Loading...</span></p>
+        <p><strong>Account ID:</strong> <span id="display-account-id">Loading...</span></p>
+        <p><strong>Status:</strong> <span id="display-status">Loading...</span></p>
+    </div>
+
+    <div class="info-box">
+        <h3>ℹ️ Informasi Pendo</h3>
+        <p>Semua ID di-generate otomatis dan disimpan di localStorage browser pengunjung.</p>
+        <button onclick="resetUser()">🔄 Reset & Generate User Baru</button>
+        <button onclick="simulateLogin()">🔐 Simulate User Login</button>
+    </div>
+
+    <div>
+        <h3>🎯 Demo Interaksi</h3>
+        <button onclick="trackButtonClick('cta_button')">📱 Klik CTA Button</button>
+        <button onclick="trackButtonClick('feature_button')">⚡ Klik Feature Button</button>
+        <button onclick="showUserInfo()">👤 Lihat Data User di Console</button>
+    </div>
+
+    <!-- Script Pendo -->
+    <script>
+        (function(apiKey){
+            (function(p,e,n,d,o){var v,w,x,y,z;o=p[d]=p[d]||{};o._q=o._q||[];
+            v=['initialize','identify','updateOptions','pageLoad','track','trackAgent'];for(w=0,x=v.length;w<x;++w)(function(m){
+                o[m]=o[m]||function(){o._q[m===v[0]?'unshift':'push']([m].concat([].slice.call(arguments,0)));};})(v[w]);
+                y=e.createElement(n);y.async=!0;y.src='https://cdn.pendo.io/agent/static/'+apiKey+'/pendo.js';
+                z=e.getElementsByTagName(n)[0];z.parentNode.insertBefore(y,z);})(window,document,'script','pendo');
+        })('e6de50b3-3489-40e2-9882-516dd6605394');
+    </script>
+
+    <script>
+        // =============================================
+        // 🛠️ FUNGSI GENERATE ID
+        // =============================================
+        
+        function generateVisitorId() {
+            // Cek apakah sudah ada visitorId di localStorage
+            let visitorId = localStorage.getItem('pendo_visitor_id');
+            
+            if (!visitorId) {
+                // Generate new visitor ID: 'vis_' + random string
+                visitorId = 'vis_' + Math.random().toString(36).substr(2, 12) + '_' + Date.now().toString(36);
+                localStorage.setItem('pendo_visitor_id', visitorId);
+                console.log('✅ Generated new Visitor ID:', visitorId);
+            }
+            
+            return visitorId;
+        }
+
+        function generateAccountId() {
+            // Untuk single page, kita bisa gunakan domain sebagai account ID
+            // atau generate unique account ID
+            let accountId = localStorage.getItem('pendo_account_id');
+            
+            if (!accountId) {
+                // Anda bisa menggunakan:
+                // 1. Domain website (untuk semua user sama)
+                // accountId = 'account_' + window.location.hostname;
+                
+                // 2. Atau generate unique account ID per visitor
+                accountId = 'acc_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now().toString(36).substr(0, 6);
+                localStorage.setItem('pendo_account_id', accountId);
+                console.log('✅ Generated new Account ID:', accountId);
+            }
+            
+            return accountId;
+        }
+
+        function getUserType() {
+            // Deteksi jenis user berdasarkan behavior
+            const visitCount = parseInt(localStorage.getItem('visit_count') || '0');
+            
+            if (visitCount > 5) return 'returning_visitor';
+            if (visitCount > 1) return 'engaged_visitor';
+            return 'new_visitor';
+        }
+
+        function getRandomName() {
+            const names = ['kartini', 'paijo', 'martin', 'suryadi', 'hamzah', 'lestari'];
+            return names[Math.floor(Math.random() * names.length)];
+        }
+
+        function getRandomEmail(visitorId) {
+            const domains = ['gmail.com', 'yahoo.com', 'outlook.com', 'company.co.id'];
+            const domain = domains[Math.floor(Math.random() * domains.length)];
+            return visitorId + '@' + domain;
+        }
+
+        // =============================================
+        // 🚀 INITIALIZE PENDO
+        // =============================================
+        
+        function initializePendo() {
+            // Track visit count
+            const visitCount = parseInt(localStorage.getItem('visit_count') || '0');
+            localStorage.setItem('visit_count', (visitCount + 1).toString());
+            
+            // Generate IDs
+            const visitorId = generateVisitorId();
+            const accountId = generateAccountId();
+            const userType = getUserType();
+            
+            // Prepare visitor data
+            const visitorData = {
+                id: visitorId,
+                email: getRandomEmail(visitorId),
+                full_name: getRandomName(),
+                user_type: userType,
+                visit_count: visitCount + 1,
+                first_visit: localStorage.getItem('first_visit') || new Date().toISOString(),
+                last_visit: new Date().toISOString(),
+                browser: navigator.userAgent.substring(0, 100)
+            };
+            
+            // Prepare account data
+            const accountData = {
+                id: accountId,
+                name: 'Website Visitor Account',
+                account_type: 'individual',
+                signup_date: localStorage.getItem('first_visit') || new Date().toISOString(),
+                total_visits: visitCount + 1
+            };
+            
+            // Update display
+            document.getElementById('display-visitor-id').textContent = visitorId;
+            document.getElementById('display-account-id').textContent = accountId;
+            document.getElementById('display-status').textContent = `${userType} (Visit #${visitCount + 1})`;
+            
+            // Initialize Pendo
+            if (typeof pendo !== 'undefined') {
+                pendo.initialize({
+                    visitor: visitorData,
+                    account: accountData
+                });
+                
+                console.log('🚀 Pendo initialized with:', { visitor: visitorData, account: accountData });
+                
+                // Track page view
+                pendo.track('pageViewed', {
+                    page: window.location.href,
+                    title: document.title,
+                    visitorType: userType
+                });
+            } else {
+                console.error('❌ Pendo not loaded yet');
+            }
+            
+            return { visitorData, accountData };
+        }
+
+        // =============================================
+        // 🎮 FUNGSI DEMO & UTILITY
+        // =============================================
+        
+        function trackButtonClick(buttonName) {
+            if (typeof pendo !== 'undefined') {
+                pendo.track('buttonClicked', {
+                    buttonName: buttonName,
+                    visitorId: localStorage.getItem('pendo_visitor_id'),
+                    timestamp: new Date().toISOString()
+                });
+                alert(`✅ Tracked: ${buttonName} clicked!\nCek Pendo Dashboard untuk melihat event.`);
+            }
+        }
+
+        function resetUser() {
+            // Clear stored IDs
+            localStorage.removeItem('pendo_visitor_id');
+            localStorage.removeItem('pendo_account_id');
+            localStorage.removeItem('first_visit');
+            localStorage.setItem('visit_count', '0');
+            
+            alert('🔄 User data reset! Generating new user...');
+            setTimeout(() => {
+                initializePendo();
+                location.reload();
+            }, 1000);
+        }
+
+        function simulateLogin() {
+            const visitorId = localStorage.getItem('pendo_visitor_id');
+            const loggedInVisitorId = 'logged_in_' + visitorId;
+            
+            // Update dengan data logged-in user
+            if (typeof pendo !== 'undefined') {
+                pendo.identify({
+                    visitor: {
+                        id: loggedInVisitorId,
+                        email: 'user_' + visitorId + '@mycompany.com',
+                        full_name: 'Registered User - ' + getRandomName(),
+                        user_type: 'registered_user',
+                        status: 'premium',
+                        registration_date: new Date().toISOString()
+                    },
+                    account: {
+                        id: 'corporate_account_001',
+                        name: 'Corporate Business Account',
+                        plan_level: 'premium',
+                        industry: 'technology'
+                    }
+                });
+                
+                document.getElementById('display-status').textContent = '✅ Registered User (Logged In)';
+                alert('🔐 Simulasi login berhasil! User sekarang sebagai registered user.');
+            }
+        }
+
+        function showUserInfo() {
+            const visitorId = localStorage.getItem('pendo_visitor_id');
+            const accountId = localStorage.getItem('pendo_account_id');
+            const visitCount = localStorage.getItem('visit_count');
+            const firstVisit = localStorage.getItem('first_visit');
+            
+            console.log('📋 User Information for Pendo:');
+            console.log('👤 Visitor ID:', visitorId);
+            console.log('🏢 Account ID:', accountId);
+            console.log('📊 Visit Count:', visitCount);
+            console.log('📅 First Visit:', firstVisit);
+            console.log('🌐 Current URL:', window.location.href);
+            
+            alert('ℹ️ Check browser console (F12) untuk melihat informasi user!');
+        }
+
+        // =============================================
+        // 🎬 INITIALIZE SAAT PAGE LOAD
+        // =============================================
+        
+        // Set first visit timestamp jika belum ada
+        if (!localStorage.getItem('first_visit')) {
+            localStorage.setItem('first_visit', new Date().toISOString());
+        }
+
+        // Initialize ketika page siap
+        document.addEventListener('DOMContentLoaded', function() {
+            // Tunggu sebentar untuk memastikan Pendo loaded
+            setTimeout(() => {
+                initializePendo();
+            }, 1000);
+        });
+
+        // Fallback initialization
+        window.addEventListener('load', function() {
+            if (!localStorage.getItem('pendo_visitor_id')) {
+                setTimeout(() => {
+                    initializePendo();
+                }, 1500);
+            }
+        });
+    </script>
+
+    <div class="info-box">
+        <h3>📝 Cara Penggunaan:</h3>
+        <ol>
+            <li>Ganti <code>YOUR_API_KEY_HERE</code> dengan API Key Pendo Anda</li>
+            <li>Upload file ini ke hosting provider pilihan</li>
+            <li>Buka website dan cek console browser (F12) untuk melihat generated IDs</li>
+            <li>Verifikasi di dashboard Pendo bahwa data masuk</li>
+        </ol>
+        
+        <h4>🔧 Testing Commands (buka console F12):</h4>
+        <pre>
+// Cek data di localStorage
+localStorage.getItem('pendo_visitor_id')
+localStorage.getItem('pendo_account_id')
+
+// Validasi Pendo
+pendo.validateEnvironment()
+
+// Track custom event
+pendo.track('testEvent', {data: 'test'})
+        </pre>
+    </div>
+<!-- Start of HubSpot Embed Code -->
+  <script type="text/javascript" id="hs-script-loader" async defer src="//js-na2.hs-scripts.com/246527257.js"></script>
+<!-- End of HubSpot Embed Code -->
+</body>
+</html>
