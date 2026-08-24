@@ -213,6 +213,25 @@
         }
 
         function resetUser() {
+            // Capture data before clearing for tracking
+            var previousVisitorId = localStorage.getItem('pendo_visitor_id');
+            var previousAccountId = localStorage.getItem('pendo_account_id');
+            var visitCount = localStorage.getItem('visit_count') || '0';
+            var firstVisit = localStorage.getItem('first_visit');
+            var timeSinceFirstVisit = firstVisit
+                ? Math.round((Date.now() - new Date(firstVisit).getTime()) / 1000)
+                : 0;
+            
+            // Track identity reset event before clearing data
+            if (typeof pendo !== 'undefined') {
+                pendo.track('user_identity_reset', {
+                    previous_visitor_id: previousVisitorId,
+                    previous_account_id: previousAccountId,
+                    visit_count_before_reset: parseInt(visitCount, 10),
+                    time_since_first_visit: timeSinceFirstVisit
+                });
+            }
+            
             // Clear stored IDs
             localStorage.removeItem('pendo_visitor_id');
             localStorage.removeItem('pendo_account_id');
@@ -229,6 +248,7 @@
         function simulateLogin() {
             const visitorId = localStorage.getItem('pendo_visitor_id');
             const loggedInVisitorId = 'logged_in_' + visitorId;
+            var registrationDate = new Date().toISOString();
             
             // Update dengan data logged-in user
             if (typeof pendo !== 'undefined') {
@@ -239,7 +259,7 @@
                         full_name: 'Registered User - ' + getRandomName(),
                         user_type: 'registered_user',
                         status: 'premium',
-                        registration_date: new Date().toISOString()
+                        registration_date: registrationDate
                     },
                     account: {
                         id: 'corporate_account_001',
@@ -247,6 +267,18 @@
                         plan_level: 'premium',
                         industry: 'technology'
                     }
+                });
+                
+                // Track login simulation conversion event
+                pendo.track('user_login_simulated', {
+                    previous_visitor_id: visitorId,
+                    new_visitor_id: loggedInVisitorId,
+                    user_type: 'registered_user',
+                    plan_level: 'premium',
+                    account_id: 'corporate_account_001',
+                    account_type: 'corporate',
+                    industry: 'technology',
+                    registration_date: registrationDate
                 });
                 
                 document.getElementById('display-status').textContent = '✅ Registered User (Logged In)';
